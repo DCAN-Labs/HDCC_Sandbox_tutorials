@@ -16,38 +16,39 @@ We'll develop a function that computes the mean Mean Diffusivity within each sit
 and then use `ModelArray.wrap` to run it across all voxels.
 
 
-### Step 1 Load the MD data in ModelArray
+### Step 1 Load the md data in ModelArray
 
-The first step is to load the ABCC MD HDF5 file and the accompanying CSV file.
+The first step is to load the ABCC md HDF5 file and the accompanying CSV file.
 
 After you've installed `ModelArray`, here's how we load the library and 
-point it to the ABCC MD HDF5 file.
+point it to the ABCC md HDF5 file.
 
 ```{r load ModelArray}
 library(ModelArray)
 # Use the real path
-h5_path <- "/nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-MD.h5"
+h5_path <- "/shared/hackathon/abcd/abcc_files/derivatives/qsirecon-ModelArray/qsirecon-DSIStudio_model-tensor_param-md.h5"
 # create a ModelArray-class object:
-modelarray <- ModelArray(h5_path, scalar_types = c("MD"))
+rhdf5::h5ls(h5_path)
+modelarray <- ModelArray(h5_path, scalar_types = c("md"))
 # let's check what's in it:
 modelarray
 ```
 You'll see:
 ```{.console}
-ModelArray located at /nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-MD.h5
+ModelArray located at /nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-md.h5
 
   Source files:     XXXXX
-  Scalars:          MD
+  Scalars:          md
   Analyses:
 ```
 
 
-This shows that there are XXXXX source MD files in this `modelarray` you created.
+This shows that there are XXXXX source md files in this `modelarray` you created.
 
 You may take a look at what the scalar matrix looks like by using `scalars()`:
 ```{r access slots, eval = FALSE}
-# scalar MD data:
-scalars(modelarray)[["MD"]]
+# scalar md data:
+scalars(modelarray)[["md"]]
 ```
 You'll see:
 ```{.console}
@@ -73,7 +74,7 @@ Each value is a specific voxel's Mean Diffusivity from a nii.gz file.
 We then load the accompanying CSV file:
 
 ```{r load csv file, eval=FALSE}
-csv_path <- "/nbdc-sandbox/derivatives/qsirecon-modelarray/ABCC_MD_phenotypes.csv"
+csv_path <- "/shared/hackathon/abcd/abcc_files/derivatives/qsirecon-ModelArray/qsirecon-DSIStudio_model-tensor_param-md.csv"
 # load the CSV file:
 phenotypes <- read.csv(csv_path)
 nrow(phenotypes)
@@ -91,7 +92,7 @@ It can be tricky to figure out exactly what you want to compute and how to make 
 We can use a convenience function from `ModelArray` to see what a dataframe looks like for a single voxel.
 
 ```{r check_one_element_df, eval=FALSE}
-example_df <- exampleElementData(modelarray, scalar = "MD", i_element = 12345, phenotypes = phenotypes)
+example_df <- exampleElementData(modelarray, scalar = "md", i_element = 12345, phenotypes = phenotypes)
 names(example_df)
 ```
 
@@ -103,7 +104,7 @@ We can explore this single voxel like we would any dataframe:
 
 ```{r explore_one_element_df, eval=FALSE}
 library(ggplot2)
-ggplot(example_df, aes(x = session_id, y = MD, color = session_id)) +
+ggplot(example_df, aes(x = session_id, y = md, color = session_id)) +
   geom_boxplot() +
   theme_minimal()
 ```
@@ -117,7 +118,7 @@ Note that this is a very simplified example and not nearly nuanced enough for a 
 ```{r anova_into_df_example, eval=FALSE}
 session_anova <- example_df %>%
   {
-    lm(MD ~ session_id, data = .)
+    lm(md ~ session_id, data = .)
   } %>%
   anova() %>%
   broom::tidy() %>%
@@ -144,14 +145,14 @@ In order to run this type of analysis on _all_ voxels, we need to write a functi
 Absolutely critical here is that this function needs a single argument named `data`:
 
 ```{r full_function_example, eval=FALSE}
-my_mean_thickness_fun <- function(data) {
+my_mean_md_fun <- function(data) {
   session_means <- data %>%
     group_by(session_id) %>%
-    summarize(mean_MD = mean(MD, na.rm = TRUE)) %>%
-    pivot_wider(names_from = session_id, values_from = mean_MD, names_glue = "MD_{session_id}")
+    summarize(mean_md = mean(md, na.rm = TRUE)) %>%
+    pivot_wider(names_from = session_id, values_from = mean_md, names_glue = "md_{session_id}")
   session_anova <- data %>%
     {
-      lm(MD ~ session_id, data = .)
+      lm(md ~ session_id, data = .)
     } %>%
     anova() %>%
     broom::tidy() %>%
@@ -173,7 +174,7 @@ my_mean_thickness_fun <- function(data) {
   bind_cols(session_means, session_anova)
 }
 
-my_mean_MD_fun(example_df)
+my_mean_md_fun(example_df)
 ```
 
 This looks good.
@@ -182,10 +183,10 @@ We can test that the function will work in the `ModelArray` looping machinery by
 ```{r test_one_element, eval=FALSE}
 analyseOneElement.wrap(
   12345,
-  my_mean_MD_fun,
+  my_mean_md_fun,
   modelarray,
   phenotypes,
-  "MD",
+  "md",
   num.subj.lthr = 2,
   flag_initiate = TRUE,
   on_error = "debug"
@@ -196,10 +197,10 @@ It looks good, so we can run it on all the voxels:
 
 ```{r run_wrapped_function, eval=FALSE}
 res_wrap <- ModelArray.wrap(
-  FUN = my_mean_MD_fun,
+  FUN = my_mean_md_fun,
   data = modelarray,
   phenotypes = phenotypes,
-  scalar = "MD",
+  scalar = "md",
   n_cores = 8
 )
 ```
@@ -213,7 +214,7 @@ head(res_wrap)
 
 ```{.console}
 # This needs to be replaced with actual output
-  element_id MD_session_1 MD_session_2 MD_session_3 MD_session_4 session_id.df session_id.sumsq session_id.meansq session_id.statistic session_id.p.value session_id.partial_eta_sq
+  element_id md_session_1 md_session_2 md_session_3 md_session_4 session_id.df session_id.sumsq session_id.meansq session_id.statistic session_id.p.value session_id.partial_eta_sq
 1          0              3.108483              3.009349            3.063119            2.692335             3         45.52142         15.173806             59.35110       5.688104e-37                0.07093606
 2          1              2.618739              2.673533            2.494077            2.324791             3         24.51961          8.173205             28.88297       2.474739e-18                0.03582533
 3          2              3.111822              3.056225            2.983709            2.812225             3         23.59899          7.866330             19.95448       9.059350e-13                0.02502795
@@ -228,7 +229,7 @@ We now save the results data frame into the original h5 file:
 ```{r write results, eval=FALSE}
 # CRITICAL NOTE: when we run this locally, we copy the h5 to our home directory and write the results into the copy.
 # IDK if this actually works, creating a new h5 file with just the results. Will have to try it out.
-writeResults("/path/to/a/new/h5/file.h5", df.output = res_wrap, analysis_name = "MD_anova_and_means")
+writeResults("/path/to/a/new/h5/file.h5", df.output = res_wrap, analysis_name = "md_anova_and_means")
 ```
 
 Notice that the the analysis name specified in argument `analysis_name` will be used in `ModelArrayIO` in the next step when converting results back to nii.gz file format. 
@@ -243,15 +244,15 @@ We now use `ConFixel` to convert the results into a list of mif files:
 
 ```{.console}
 $ voxelstats_write \
-  --cohort-file /nbdc-sandbox/derivatives/qsirecon-modelarray/ABCC_MD_phenotypes.csv \
-  --analysis-name MD_anova_and_means \
-  --input-hdf5 /nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-MD.h5 \
+  --cohort-file /nbdc-sandbox/derivatives/qsirecon-modelarray/ABCC_md_phenotypes.csv \
+  --analysis-name md_anova_and_means \
+  --input-hdf5 /nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-md.h5 \
   --output-dir /where/you/want/to/put/your/niftis \
-  --example-nifti /nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-MD.nii.gz # Need to find the real path
+  --example-nifti /nbdc-sandbox/derivatives/qsirecon-modelarray/qsirecon-md.nii.gz # Need to find the real path
 ```
 
 After it's done, in the main folder `/where/you/want/to/put/your/niftis`, 
-there will be a new folder called `MD_anova_and_means` and converted result `nii.gz` files are in this new folder:
+there will be a new folder called `md_anova_and_means` and converted result `nii.gz` files are in this new folder:
 
 
 
