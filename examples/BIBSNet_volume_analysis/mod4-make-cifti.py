@@ -3,67 +3,89 @@ import numpy as np
 import nibabel as nib
 import matplotlib.pyplot as plt
 from numpy.polynomial.polynomial import Polynomial
+import os
+
+# Define file paths
+template_files = "data/template-files"
+src_files = "data/src"
+out_dir = "data/outputs"
 
 # df = pd.read_csv('img_bibsnet_space-T1w_desc-aseg_volumes.tsv', sep='\t')
-df = pd.read_csv('../../local/img_bibsnet_space-T1w_desc-aseg_volumes.csv')
+# for sandbox, this file should be pulled from local dir instead and will be a tsv
+df = pd.read_csv("../../local/data/img_bibsnet_space-T1w_desc-aseg_volumes.csv")
 
+# Define age column and ROI columns (exclude age columns and Unknown ROI)
 age_col='img_bibsnet_space-T1w_desc-aseg_volumes_candidate_age'
 prefix='img_bibsnet_space-T1w_desc-aseg_volumes_'
-region_cols = [col for col in df.columns if col.startswith(prefix) and 'age' not in col]
+roi_cols = [col for col in df.columns if col.startswith(prefix) and 'age' not in col and 'Unknown' not in col]
+
+# Compute model weights for each ROI using a polynomial fit of age to volume, and store in a new dataframe
 roi_weights = []
     
-for region_col in region_cols:
-    region_name = region_col.replace(prefix, '') # strip prefix for ROIs 
+for roi in roi_cols:
+    roi_name = roi.replace(prefix, '') # strip prefix for ROIs 
     
-    # Flatten into one array (note: ignores repeated participants)
-    valid = df[[age_col, region_col]].dropna()
+    # Flatten into one array (note: ignores repeated participants) and drop NaNs to avoid issues with polynomial fit
+    valid = df[[age_col, roi]].dropna()
     x = valid[age_col].to_numpy().ravel()
-    y = valid[region_col].to_numpy().ravel()
+    y = valid[roi].to_numpy().ravel()
 
     # Polynomial fit
     coefs = Polynomial.fit(x, y, deg=2).convert().coef
 
     roi_weights.append({
-        "roi": region_name,
+        "roi": roi_name,
         "intercept": coefs[0],
         "age_linear": coefs[1],
         "age_quadratic": coefs[2]
     })
 
 weights_df = pd.DataFrame(roi_weights)
-weights_df = weights_df[weights_df['roi'] != 'Unknown'] # remove Unknown ROI 
-weights_df.to_csv('../../local/linear-weights.tsv', sep='\t')
+print(weights_df)
 
-plt.bar(weights_df['roi'], weights_df['age_linear'])
-plt.xticks(rotation=90)
-plt.ylabel("Age coefficient")
-plt.title("Linear age effect by ROI")
-plt.savefig('linear_age_effects.png')
-
-# plt.bar(weights_df['roi'], weights_df['age_quadratic'])
+# Can plot or save to tsv file if wanted, but likely not needed in this case
+weights_df.to_csv('data/outputs/model-weights.tsv', sep='\t', index=False)
+# plt.bar(weights_df['roi'], weights_df['age_linear'])
 # plt.xticks(rotation=90)
 # plt.ylabel("Age coefficient")
-# plt.title("Quadratic age effect by ROI")
+# plt.title("Linear age effect by ROI")
+# plt.tight_layout()
 # plt.show()
 
-# GENERATE CIFTI FILE - NOT WORKING YET
-# Load atlas file (NEED TO FIND ONE TO USE)
-atlas = nib.load("atlas.dlabel.nii")
-atlas_data = atlas.get_fdata().squeeze()
-output = np.zeros_like(atlas_data)
+# GENERATE CIFTI FILE
+# Read in FreeSurfer LUT to get label IDs for each ROI (this file only includes the ROIs defined for HBCD data) and merge with weights DF on the roi column to integrate model weights
+lut_df = pd.read_csv(f"{src_files}/FreeSurfer-LUT-short.csv")
+rois_df = pd.merge(lut_df, weights_df, on="roi", how="inner")
+print(rois_df)
 
-# this might work? need to make sure the ROI names in df match the atlas labels - define label_lookup 
-for roi_name, weight in zip(weights_df["roi"], weights_df["linear"]):
-    roi_id = label_lookup[roi_name]
-    output[atlas_data == roi_id] = weight
+# Convert aseg labels to weights (output as file roi_weights_volume.nii.gz) using wb_command - uses src aseg file for mapping
+expr = " + ".join([f"(aseg=={row.label})*{row.age_linear}" for _, row in rois_df.iterrows()])
+cmd = f"wb_command -volume-math '{expr}' {out_dir}/roi_weights_volume.nii.gz -var aseg {template_files}/aseg_dseg.nii.gz"
+os.system(cmd)
 
-# Save CIFTI file using atlas file header info
-new_cifti = nib.Cifti2Image(
-    output[np.newaxis, :],
-    header=atlas.header,
-    nifti_header=atlas.nifti_header
-)
+# Define paths to template files
+atlasroi = f"{template_files}/91282_Greyordinates/L.atlasroi.32k_fs_LR.shape.gii"
 
-nib.save(new_cifti, "linear_age_weights_per_ROI.dscalar.nii")
+hemis = ["L", "R"]
 
-   
+for hemi in hemis:
+    # Surface files
+    midthickness = f"{template_files}/hemi-{hemi}_space-fsLR_den-32k_desc-hcp_midthickness.surf.gii"
+    wm = f"{template_files}/hemi-{hemi}_space-fsLR_den-32k_white.surf.gii"
+    pial = f"{template_files}/hemi-{hemi}_space-fsLR_den-32k_pial.surf.gii"
+
+    # Output files
+    output_shape = f"{out_dir}/{hemi}_linear_age_weights_per_ROI.shape.gii"
+    output_shape_dilate = f"{out_dir}/{hemi}_linear_age_weights_per_ROI-dilate.shape.gii"
+    output_shape_mask = f"{out_dir}/{hemi}_linear_age_weights_per_ROI-dilate-mask.shape.gii"
+
+    # Commands
+    cmds = [
+        f"wb_command -volume-to-surface-mapping {out_dir}/roi_weights_volume.nii.gz {midthickness} {output_shape} "
+        f"-ribbon-constrained {wm} {pial} -interpolate ENCLOSING_VOXEL",
+        f"wb_command -metric-dilate {output_shape} {midthickness} 10 {output_shape_dilate} -nearest",
+        f"wb_command -metric-mask {output_shape_dilate} {atlasroi} {output_shape_mask}"
+    ]
+
+    for cmd in cmds:
+        os.system(cmd)
