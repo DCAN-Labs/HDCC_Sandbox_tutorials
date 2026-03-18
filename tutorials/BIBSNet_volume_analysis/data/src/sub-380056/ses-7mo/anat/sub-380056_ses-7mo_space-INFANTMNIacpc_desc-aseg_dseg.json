@@ -1,0 +1,14 @@
+{
+    "Name": "BOBS Repo",
+    "BIDSVersion": "1.10.0",
+    "DatasetType": "derivative",
+    "Description": "Segmentation files were generated with BIBSNet and subsequently manually corrected by trained PrimeNeuro specialists",
+
+    "GeneratedBy": [
+      {
+        "Name": "Manual",
+        "Version": "1.0"
+      }
+    ],
+    "SpatialReference":"INFANTMNIacpc"
+  }
