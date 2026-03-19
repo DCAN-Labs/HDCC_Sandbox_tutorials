@@ -5,9 +5,7 @@ format: html
 editor: visual
 ---
 
-## These sections will load different R libraries needed for the XCP-D prediction analysis
-
-### The arrow library is needed for loading parquet files into memory
+## Libraries
 
 ```{r}
 #| echo: false
@@ -15,126 +13,28 @@ editor: visual
 
 
 library(arrow)
-```
-
-### The cifti library is needed if one wants to load any CIFTI files -- our standard imaging output files
-
-```{r}
-#| echo: false
-#| warning: false
-
 library(cifti)
-```
-
-### The data.table library is helpful for reshaping data frames
-
-```{r}
-#| echo: false
-#| warning: false
 library(data.table)
-```
-
-### The dplyr library is helpful for looping through the same operations multiple times
-
-```{r}
-#| echo: false
-#| warning: false
 library(dplyr)
-```
-
-### The ggplot2 library is helpful for data visualizations
-
-```{r}
-#| echo: false
-#| warning: false
 library(ggplot2)
-```
-
-### The ggsci library is helpful for providing more scientific color schemes and
-### themes
-
-```{r}
-#| echo: false
-#| warning: false
 library(ggsci)
-```
-
-# The lme4 library is helpful for creating linear mixed effects models
-
-```{r}
-#| echo: false
-#| warning: false
 library(lme4)
-```
-
-### The lmerTest library is helpful for using generated models to predict 
-### outcomes
-
-```{r}
-#| echo: false
-#| warning: false
 library(lmerTest)
-```
-
-### The nlme library is helpful for non-linear mixed effects models
-
-```{r}
-#| echo: false
-#| warning: false
 library(nlme)
-```
-
-### The plotrix library is helpful for generating heatmaps
-
-```{r}
-#| echo: false
-#| warning: false
 library(plotrix)
-```
-
-### The pls library is helpful for partial-least squares regression
-
-```{r}
-#| echo: false
-#| warning: false
 library(pls)
-```
-
-### The reshape2 package is helpful for converting between vectors and matrices 
-
-```{r}
-#| echo: false
-#| warning: false
 library(reshape2)
-```
-
-### The RSpectra package is helpful for fast and efficient eigenvalue 
-### decomposition ( data dimensionality reduction )
-
-```{r}
-#| echo: false
-#| warning: false
 library(RSpectra)
-```
-
-### The tidyr package is helpful for looping multiple operations
-
-```{r}
-#| echo: false
-#| warning: false
 library(tidyr)
+
 ```
 
-
-## The next section declares a set of functions that simplify the code we will
-## use for XCP-D prediction
-
-### align_df_to_ids appends a set of subject ids to a data frame as the column 
-### named in ## "id_col"
+## Functions
 
 ```{r}
 #| echo: false
 #| warning: false
+
 align_df_to_ids <- function(df, ids, id_col = "id") {
   ids <- as.character(ids)
   df[[id_col]] <- as.character(df[[id_col]])
@@ -154,14 +54,7 @@ align_df_to_ids <- function(df, ids, id_col = "id") {
   }
   df2
 }
-```
 
-### align_rows_to_ids ensures that rows within a matrix are aligned to the 
-### matrix X.
-
-```{r}
-#| echo: false
-#| warning: false
 align_rows_to_ids <- function(X, ids) {
   ids <- as.character(ids)
   rn <- rownames(X)
@@ -184,13 +77,7 @@ align_rows_to_ids <- function(X, ids) {
   }
   X2
 }
-```
 
-### CheckCIFTI checks a CIFTI file for NaNs and reports on the number found.
-
-```{r}
-#| echo: false
-#| warning: false
 CheckCIFTI <- function(pconndir,pconn) {
   pconnpath <- paste(pconndir,"/",pconn,sep="")
   ciftidata <- read_cifti(pconnpath)
@@ -199,29 +86,14 @@ CheckCIFTI <- function(pconndir,pconn) {
   outputdf <- data.frame(pconn_name = pconn, number_nans = cmat_nans)
   return(outputdf)
 }
-```
 
-### Community Grid Info identifies the row min and row max for each community 
-### for a matrix given a set of community assignments in a data frame.
-
-```{r}
-#| echo: false
-#| warning: false
 CommunityGridInfo <- function(community_df) {
   communities <- unique(community_df$comm)
   t(sapply(communities,function(x) {c(x,min(community_df$index[community_df$comm==x]),max(community_df$index[community_df$comm==x]))}))
 }
 
-##Extract subject ID extracts the subject ID from a path variable
 extract_sub_id <- function(paths) sub(".*/sub-([^/]+)/.*", "\\1", paths)
-```
 
-### FCMap produces a heatmap visualization of a correlation or statistic matrix
-### organized and labeled by community structure.
-
-```{r}
-#| echo: false
-#| warning: false
 FCMap <- function(cmat,plottitle='Correlation Matrix',negmax=-0.5,posmax=1,xlabel="ROI",ylabel="ROI",commcolor='black',comms_df) {
   cmat_nanzero <- cmat
   cmat_nanzero[is.na(cmat_nanzero)] <- 0
@@ -240,15 +112,7 @@ FCMap <- function(cmat,plottitle='Correlation Matrix',negmax=-0.5,posmax=1,xlabe
     theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
     labs(title = plottitle, x = xlabel, y = ylabel)
 }
-```
 
-### make_p constructs a phenotype data frame from phenotypes loaded from a file, 
-### session and ids are used to match what is in the phenotype file to the 
-### selected ids and sessions.
-
-```{r}
-#| echo: false
-#| warning: false
 make_p <- function(phenos, session, ids) {
   out <- phenos %>%
     filter(session_id == session) %>%
@@ -268,24 +132,11 @@ make_p <- function(phenos, session, ids) {
 
   out
 }
-```
 
-### make_X constructs a flattened 2D matrix from correlation matrices.
-### The upper triangular part is used to flatten the matrix into a 
-### cases X correlation data matrix.
-
-```{r}
-#| echo: false
-#| warning: false
-make_X <- function(paths,datatype = 'pconn') {
+make_X <- function(paths) {
   ids <- extract_sub_id(paths)
 
-  if(datatype == "pconn"){
-    X <- do.call(rbind, lapply(paths, pconnFunc))
-  }
-  if(datatype =="tsv"){
-    X <- do.call(rbind, lapply(paths, tsvFunc))
-  }
+  X <- do.call(rbind, lapply(paths, pconnFunc))
   rownames(X) <- ids
 
   # sanity checks
@@ -294,14 +145,7 @@ make_X <- function(paths,datatype = 'pconn') {
 
   X
 }
-```
 
-### ManPlot constructs manhattan plots to visualize significant findings grouped 
-### by community or communityXcommunity in the case of correlations.
-
-```{r}
-#| echo: false
-#| warning: false
 ManPlot <- function(V,
                     predictor.names = NULL,
                     group.structure = NULL,
@@ -463,18 +307,11 @@ ManPlot <- function(V,
 
   invisible(TRUE)
 }
-```
 
-### pconnFunc loads a pconn and converts it into a vector. 
-### If dontcheckROI is set to false, it will instead report the number of ROIs.
-
-```{r}
-#| echo: false
-#| warning: false
-pconnFunc <- function(path,dontcheckROIs = TRUE){
+pconnFunc <- function(path,checkROIs = FALSE){
   pconn <- cifti::read_cifti(path)
   mat <- pconn$data
-  if (dontcheckROIs) {
+  if (checkROIs) {
     vec <- mat[upper.tri(mat, diag = FALSE)]
     vec
   } else
@@ -483,15 +320,7 @@ pconnFunc <- function(path,dontcheckROIs = TRUE){
     vec
   }
 }
-```
 
-### ReshapeVectorAsMatrix reforms a vector into the proper matrix format. 
-### The matlength parameter specifies the number of ROIs. 
-### The diagval parameter imposes the value (default = 1) set on a diagonal.
-
-```{r}
-#| echo: false
-#| warning: false
 ReshapeVectorAsMatrix <- function(dummy_vec,matlength,diagval=1) {
   dummy_emptymat = matrix( data = rep(0,matlength^2),nrow = matlength, ncol = matlength)
   dummy_emptymat[upper.tri(dummy_emptymat,diag = FALSE)] <- dummy_vec
@@ -500,14 +329,6 @@ ReshapeVectorAsMatrix <- function(dummy_vec,matlength,diagval=1) {
   dummy_transpose[upper.tri(dummy_transpose)] <- dummy_vec
   return(dummy_transpose)
 }
-```
-
-### ReshapeWeightsAsMatrices reforms a set of parameter estimates into 
-### a correlation matrix.
-
-```{r}
-#| echo: false
-#| warning: false
 ReshapeWeightsAsMatrices <- function(weightarray,matlength) {
   weightindex <- 1
   weightlimit <- dim(weightarray)[2]
@@ -518,14 +339,7 @@ ReshapeWeightsAsMatrices <- function(weightarray,matlength) {
   }
   return(weightlist)
 }
-```
 
-### right_rows ensures that the times, ids, and data points match with the 
-### underlying data, ensuring that only the rows used for analysis are selected.
-
-```{r}
-#| echo: false
-#| warning: false
 right_rows <- function (data, times, ids, Q_points) {
     fids <- factor(ids, levels = unique(ids))
     if (!is.list(Q_points))
@@ -536,18 +350,11 @@ right_rows <- function (data, times, ids, Q_points) {
     ind <- mapply(`[`, rownams_id, split(ind, col(ind)))
     data[c(ind), ]
 }
-```
 
-### tsvFunc is the equivalent of pconnFunc except it operates on the tsv files. 
-### dontcheckROIs, when set to FALSE, will report the number of ROIs.
-
-```{r}
-#| echo: false
-#| warning: false
-tsvFunc <- function(path,dontcheckROIs = TRUE){
+tsvFunc <- function(path){
   tsv <- read.table(path,header=TRUE)
   mat <- as.matrix(tsv[,-1])
-  if (dontcheckROIs) {
+  if (checkROIs) {
     vec <- mat[upper.tri(mat, diag = FALSE)]
     vec <- as.numeric(vec)
     vec
@@ -557,15 +364,7 @@ tsvFunc <- function(path,dontcheckROIs = TRUE){
     vec
   }
 }
-```
 
-### ylmepred uses a created linear-mixed effects (LME) model and newdata 
-### to predict the outcome variable. The LME model can be extended to 
-### predict data in subsequent timepoints or ages. 
-
-```{r}
-#| echo: false
-#| warning: false
 ylmepred <- function (lmeObject, newdata, timeVar, times = NULL, M = 200L, 
   interval = c("confidence", "prediction"), all_times = FALSE, 
   level = 0.95, return_data = FALSE, seed = 1L) 

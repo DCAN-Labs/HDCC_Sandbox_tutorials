@@ -5,13 +5,7 @@ format: html
 editor: visual
 ---
 
-## These sections will load different R libraries needed for the XCP-D prediction analysis
-
-### ----------------------------------------------------------------------------
-
-### 1) The arrow library is needed for loading parquet files into memory
-
-### ----------------------------------------------------------------------------
+## Libraries
 
 ```{r}
 #| echo: false
@@ -19,178 +13,29 @@ editor: visual
 
 
 library(arrow)
-```
-
-### ----------------------------------------------------------------------------
-
-### 2) The cifti library is needed if one wants to load any CIFTI files.
-
-### The CIFTI format is our standard for HBCD imaging output files.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
-
 library(cifti)
-```
-
-### ----------------------------------------------------------------------------
-
-### 3)The data.table library is helpful for reshaping data frames.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(data.table)
-```
-
-### ----------------------------------------------------------------------------
-
-### 4) The dplyr library is helpful for looping through the same operations multiple times.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(dplyr)
-```
-
-### ----------------------------------------------------------------------------
-
-### 5) The ggplot2 library is helpful for data visualizations.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(ggplot2)
-```
-
-### ----------------------------------------------------------------------------
-
-### 6) The ggsci library is helpful for providing more scientific color schemes and themes.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(ggsci)
-```
-
-### ----------------------------------------------------------------------------
-
-### 7) The lme4 library is helpful for creating linear mixed effects models.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(lme4)
-```
-
-### ----------------------------------------------------------------------------
-
-### 8) The lmerTest library is helpful for using generated models to predict outcomes.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(lmerTest)
-```
-
-### ----------------------------------------------------------------------------
-
-### 9) The nlme library is helpful for non-linear mixed effects models.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(nlme)
-```
-
-### ----------------------------------------------------------------------------
-
-### 10) The plotrix library is helpful for generating heatmaps.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(plotrix)
-```
-
-### ----------------------------------------------------------------------------
-
-### 11) The pls library is helpful for partial-least squares regression.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(pls)
-```
-
-### ----------------------------------------------------------------------------
-
-### The reshape2 package is helpful for converting between vectors and matrices.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(reshape2)
-```
-
-### ----------------------------------------------------------------------------
-
-### The RSpectra package is helpful for fast and efficient eigenvalue decomposition ( data dimensionality reduction ).
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(RSpectra)
-```
-
-### ----------------------------------------------------------------------------
-
-### The tidyr package is helpful for looping multiple operations.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 library(tidyr)
+
 ```
 
-## The next section declares a set of functions that simplify the code we will use for XCP-D prediction
-
-### ----------------------------------------------------------------------------
-
-### 1) align_df_to_ids appends a set of subject ids to a data frame as the column named in \## "id_col"
-
-### ----------------------------------------------------------------------------
+## Functions
 
 ```{r}
 #| echo: false
 #| warning: false
+
+## align_df_to_ids appends a set of subject ids to a data frame as the column named in "id_col"
 align_df_to_ids <- function(df, ids, id_col = "id") {
   ids <- as.character(ids)
   df[[id_col]] <- as.character(df[[id_col]])
@@ -210,17 +55,8 @@ align_df_to_ids <- function(df, ids, id_col = "id") {
   }
   df2
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 2) align_rows_to_ids ensures that rows within a matrix are aligned to the matrix X.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+## align_rows_to_ids ensures that rows within a matrix are aligned to the matrix X
 align_rows_to_ids <- function(X, ids) {
   ids <- as.character(ids)
   rn <- rownames(X)
@@ -243,17 +79,9 @@ align_rows_to_ids <- function(X, ids) {
   }
   X2
 }
-```
 
-### ----------------------------------------------------------------------------
+##CheckCIFTI checks a CIFTI file for NaNs and reports on the number found
 
-### 3) CheckCIFTI checks a CIFTI file for NaNs and reports on the number found.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 CheckCIFTI <- function(pconndir,pconn) {
   pconnpath <- paste(pconndir,"/",pconn,sep="")
   ciftidata <- read_cifti(pconnpath)
@@ -262,17 +90,8 @@ CheckCIFTI <- function(pconndir,pconn) {
   outputdf <- data.frame(pconn_name = pconn, number_nans = cmat_nans)
   return(outputdf)
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 4) Community Grid Info identifies the row min and row max for each community for a matrix given a set of community assignments in a data frame.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##Community Grid Info identifies the row min and row max for each community for a matrix given a set of community assignments in a data frame
 CommunityGridInfo <- function(community_df) {
   communities <- unique(community_df$comm)
   t(sapply(communities,function(x) {c(x,min(community_df$index[community_df$comm==x]),max(community_df$index[community_df$comm==x]))}))
@@ -280,17 +99,10 @@ CommunityGridInfo <- function(community_df) {
 
 ##Extract subject ID extracts the subject ID from a path variable
 extract_sub_id <- function(paths) sub(".*/sub-([^/]+)/.*", "\\1", paths)
-```
 
-### ----------------------------------------------------------------------------
 
-### 5) FCMap produces a heatmap visualization of a correlation or statistic matrix organized and labeled by community structure.
+##FCMap produces a heatmap visualization of a correlation or statistic matrix organized and labeled by community structure.
 
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 FCMap <- function(cmat,plottitle='Correlation Matrix',negmax=-0.5,posmax=1,xlabel="ROI",ylabel="ROI",commcolor='black',comms_df) {
   cmat_nanzero <- cmat
   cmat_nanzero[is.na(cmat_nanzero)] <- 0
@@ -309,17 +121,9 @@ FCMap <- function(cmat,plottitle='Correlation Matrix',negmax=-0.5,posmax=1,xlabe
     theme(axis.text.x = element_text(angle=90, vjust=.5, hjust=1)) +
     labs(title = plottitle, x = xlabel, y = ylabel)
 }
-```
 
-### ----------------------------------------------------------------------------
+##make_p constructs a phenotype data frame from phenotypes loaded from a file, session and ids are used to match what is in the phenotype file to the selected ids and sessions
 
-### 6) make_p constructs a phenotype data frame from phenotypes loaded from a file, session and ids are used to match what is in the phenotype file to the selected ids and sessions.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 make_p <- function(phenos, session, ids) {
   out <- phenos %>%
     filter(session_id == session) %>%
@@ -339,19 +143,9 @@ make_p <- function(phenos, session, ids) {
 
   out
 }
-```
 
-### ----------------------------------------------------------------------------
+##make_X constructs a flattened 2D matrix from correlation matrices, the upper triangular part is used to flatten the matrix into cases X correlation data matrix
 
-### 7) make_X constructs a flattened 2D matrix from correlation matrices.
-
-### The upper triangular part is used to flatten the matrix into a cases X correlation data matrix.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
 make_X <- function(paths,datatype = 'pconn') {
   ids <- extract_sub_id(paths)
 
@@ -369,17 +163,8 @@ make_X <- function(paths,datatype = 'pconn') {
 
   X
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 8) ManPlot constructs manhattan plots to visualize significant findings grouped by community or communityXcommunity in the case of correlations.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##ManPlot constructs manhattan plots to visualize significant findings grouped by community or communityXcommunity in the case of correlations
 ManPlot <- function(V,
                     predictor.names = NULL,
                     group.structure = NULL,
@@ -541,19 +326,8 @@ ManPlot <- function(V,
 
   invisible(TRUE)
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 9) pconnFunc loads a pconn and converts it into a vector.
-
-### If dontcheckROI is set to false, it will instead report the number of ROIs.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##pconnFunc loads a pconn and converts it into a vector. if dontcheckROI is set to false, it will instead report the number of ROIs.
 pconnFunc <- function(path,dontcheckROIs = TRUE){
   pconn <- cifti::read_cifti(path)
   mat <- pconn$data
@@ -566,21 +340,8 @@ pconnFunc <- function(path,dontcheckROIs = TRUE){
     vec
   }
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 10) ReshapeVectorAsMatrix reforms a vector into the proper matrix format.
-
-### The matlength parameter specifies the number of ROIs.
-
-### The diagval parameter imposes the value (default = 1) set on a diagonal.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##ReshapeVectorAsMatrix reforms a vector into the proper matrix format, using the number of ROIs (matlength). diagval imposes the value set on a diagonal, whose default is 1. 
 ReshapeVectorAsMatrix <- function(dummy_vec,matlength,diagval=1) {
   dummy_emptymat = matrix( data = rep(0,matlength^2),nrow = matlength, ncol = matlength)
   dummy_emptymat[upper.tri(dummy_emptymat,diag = FALSE)] <- dummy_vec
@@ -589,17 +350,8 @@ ReshapeVectorAsMatrix <- function(dummy_vec,matlength,diagval=1) {
   dummy_transpose[upper.tri(dummy_transpose)] <- dummy_vec
   return(dummy_transpose)
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 11) ReshapeWeightsAsMatrices reforms a set of parameter estimates into a correlation matrix.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##ReshapeWeightsAsMatrices reforms a set of parameter estimates into a correlation matrix.
 ReshapeWeightsAsMatrices <- function(weightarray,matlength) {
   weightindex <- 1
   weightlimit <- dim(weightarray)[2]
@@ -610,17 +362,9 @@ ReshapeWeightsAsMatrices <- function(weightarray,matlength) {
   }
   return(weightlist)
 }
-```
 
-### ----------------------------------------------------------------------------
 
-### 12) right_rows ensures that the times, ids, and data points match with the underlying data, ensuring that only the rows used for analysis are selected.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##right_rows ensures that the times, ids, and data points match with the underlying data, ensuring that only the rows used for analysis are selected.
 right_rows <- function (data, times, ids, Q_points) {
     fids <- factor(ids, levels = unique(ids))
     if (!is.list(Q_points))
@@ -631,17 +375,9 @@ right_rows <- function (data, times, ids, Q_points) {
     ind <- mapply(`[`, rownams_id, split(ind, col(ind)))
     data[c(ind), ]
 }
-```
 
-### ----------------------------------------------------------------------------
 
-### 13) tsvFunc is the equivalent of pconnFunc except it operates on the tsv files. dontcheckROIs, when set to FALSE, will report the number of ROIs.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##tsvFunc is the equivalent of pconnFunc except it operates on the tsvfiles instead. dontcheckROIs, when set to FALSE, will report the number of ROIs instead of outputting a flattened matrix.
 tsvFunc <- function(path,dontcheckROIs = TRUE){
   tsv <- read.table(path,header=TRUE)
   mat <- as.matrix(tsv[,-1])
@@ -655,17 +391,8 @@ tsvFunc <- function(path,dontcheckROIs = TRUE){
     vec
   }
 }
-```
 
-### ----------------------------------------------------------------------------
-
-### 14) ylmepred uses a created linear-mixed effects (LME) model and newdata to predict the outcome variable. The LME model can be extended to predict data in subsequent timepoints or ages.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
-#| warning: false
+##ylmepred uses a created linear-mixed effects (LME) model and newdata to predict the outcome variable. The LME model can be extended to predict data in subsequent timepoints or ages, by extending the model solution using a solver. 
 ylmepred <- function (lmeObject, newdata, timeVar, times = NULL, M = 200L, 
   interval = c("confidence", "prediction"), all_times = FALSE, 
   level = 0.95, return_data = FALSE, seed = 1L) 
@@ -761,13 +488,7 @@ ylmepred <- function (lmeObject, newdata, timeVar, times = NULL, M = 200L,
 
 ```
 
-## The next section will select the imaging files we will want to use for generating the longitudinal model. These can be anything, as long as specific lines are edited.
-
-### ----------------------------------------------------------------------------
-
-### 1) Selecting imaging files. Change ROOT to the path where the pipeline derivatives are located (e.g. "XCP_D). Change pconnname to the root for the imaging files you want to load. Change pconnpattern to select the imaging file types you want to load. For example if you wanted to load pconns, you would change the extension from tsv to pconn.nii.
-
-### ----------------------------------------------------------------------------
+## Files
 
 ```{r}
 #| eval: false
@@ -824,12 +545,6 @@ ses_id <- sub(".*_(ses-[^_]+)_.*", "\\1", subject_ids)
 head(ses_id)
 ```
 
-### ----------------------------------------------------------------------------
-
-### 2) The next lines will organize our selected imaging files into the different session visits (e.g. V02, V03, V04)
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 #| eval: false
 #| echo: false
@@ -841,12 +556,6 @@ ses_V04 <- pconn_files[grepl("_ses-V04", basename(pconn_files))]
 sub_ids_V04 <- sub(".*/sub-([^/]+)/.*", "\\1", ses_V04)
 
 ```
-
-### ----------------------------------------------------------------------------
-
-### 3) The next lines will identify the common participants across all sessions. It will also save the intermediate output to avoid having to do this later. Please make sure this output remains in the sandbox or on a NIST compliant platform.
-
-### ----------------------------------------------------------------------------
 
 ```{r}
  common_ids <- Reduce(
@@ -861,30 +570,15 @@ length(common_ids)
 head(common_ids)
 ```
 
-### ----------------------------------------------------------------------------
-
-### 4) The next section loads the phenotypic (i.e. non-imaging ) data.
-
-### Choosing a different "phenofolder" and "phenofile" will enable users to use different phenotypic data available for HBCD.
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 #| echo: false
 
 phenofolder <- "/shared/hackathon/hbcd/v1.1/hbcd/rawdata/phenotype"
 phenofile <- paste(phenofolder,"sed_bm_strsup.parquet",sep = "/")
 phenos <- read_parquet(phenofile)
-```
 
-### ----------------------------------------------------------------------------
 
-### 5) The next section produces a table to evaluate what data may be missing as organized by session.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
+# Variables to evaluate
 pheno_vars <- setdiff(names(phenos), c("participant_id", "session_id"))
 
 na_table <- phenos %>%
@@ -913,33 +607,35 @@ na_table_t
 
 ```
 
-## The next section will prepare the imaging data by loading it into R.
-
-### ------------------------------------------------------------
-
-### 1) Build X matrices
-
-### ------------------------------------------------------------
-
 ```{r}
 #| warning: false
+
+## ============================================================
+## UPDATED SOURCE CODE
+## - Enforces a single canonical ordering: common_ids
+## - Reorders X0/X2/X4 AND p0/p2/p4 to match common_ids
+## - Adds strict sanity checks so misalignment can’t slip through
+## ============================================================
 
 
 options(stringsAsFactors = FALSE)
+
+## ------------------------------------------------------------
+## Helpers -- Organized as Functions above
+## ------------------------------------------------------------
+
+
+## ------------------------------------------------------------
+## 1) Build X matrices
+## ------------------------------------------------------------
  X0 <- make_X(ses_V02,"tsv")
  X2 <- make_X(ses_V03,"tsv")
  X4 <- make_X(ses_V04,"tsv")
-```
 
-### ------------------------------------------------------------
-
-### 2) First-pass restrict to your current common_ids. Keeps only IDs that appear in the pconn matrices, and saves intermediate data. OR if this is prediction_FINAL.qmd it will load the intermediate data.
-
-### ------------------------------------------------------------
-
-```{r}
-#| warning: false
- 
+## ------------------------------------------------------------
+## 2) First-pass restrict to your current common_ids
+##    (keeps only IDs that appear in the pconn matrices)
+## ------------------------------------------------------------
  X0 <- X0[rownames(X0) %in% common_ids, , drop = FALSE]
  X2 <- X2[rownames(X2) %in% common_ids, , drop = FALSE]
  X4 <- X4[rownames(X4) %in% common_ids, , drop = FALSE]
@@ -952,30 +648,19 @@ options(stringsAsFactors = FALSE)
 # X2 <- scale(X2)
 # X4 <- readRDS("X4.RDS")
 # X4 <- scale(X4)
-```
 
-### ------------------------------------------------------------
-
-### 3) Load example pconn so we know the number of ROIs(ensures we can accurately retrieve the matrix and visualize).
-
-### ------------------------------------------------------------
-
-```{r}
-#| warning: false
+## ------------------------------------------------------------
+## 3) Load example pconn so we know the number of ROIs 
+##    (ensures we can accurately retrieve the matrix and visualize)
+## ------------------------------------------------------------
 
 nROIs <-  pconnFunc(ses_V02[1],dontcheckROIs=FALSE)
 
-```
 
-### ------------------------------------------------------------
-
-### 4) Load phenos and compute FINAL common_ids intersection (ensures IDs exist in ALL sessions + phenos).
-
-### ------------------------------------------------------------
-
-```{r}
-#| warning: false
-
+## ------------------------------------------------------------
+## 4) Load phenos and compute FINAL common_ids intersection
+##    (ensures IDs exist in ALL sessions + phenos)
+## ------------------------------------------------------------
 phenos <- read_parquet(phenofile) %>%
   dplyr::select(
     sed_bm_strsup_adjusted_age,
@@ -995,19 +680,11 @@ common_ids <- Reduce(
 
 cat("[INFO] length(common_ids) =", length(common_ids), "\n")
 cat("[INFO] head(common_ids) =", paste(head(common_ids), collapse = ", "), "\n")
-```
 
-### ------------------------------------------------------------
-
-### 5) NOW enforce canonical ordering everywhere, via common_ids.
-
-### ------------------------------------------------------------
-
-```{r}
-#| warning: false
-
+## ------------------------------------------------------------
+## 5) NOW enforce canonical ordering everywhere = common_ids
+## ------------------------------------------------------------
 # Align X matrices to common_ids order
-
 X0 <- align_rows_to_ids(X0, common_ids)
 X2 <- align_rows_to_ids(X2, common_ids)
 X4 <- align_rows_to_ids(X4, common_ids)
@@ -1016,16 +693,10 @@ X4 <- align_rows_to_ids(X4, common_ids)
 p0 <- make_p(phenos, "ses-V02", common_ids) %>% align_df_to_ids(common_ids)
 p2 <- make_p(phenos, "ses-V03", common_ids) %>% align_df_to_ids(common_ids)
 p4 <- make_p(phenos, "ses-V04", common_ids) %>% align_df_to_ids(common_ids)
-```
 
-### ------------------------------------------------------------
-
-### 6) Final sanity checks, and make temp table for debugging.
-
-### ------------------------------------------------------------
-
-```{r}
-#| warning: false
+## ------------------------------------------------------------
+## 5) Final sanity checks + temp table for debugging
+## ------------------------------------------------------------
 stopifnot(identical(rownames(X0), common_ids))
 stopifnot(identical(rownames(X2), common_ids))
 stopifnot(identical(rownames(X4), common_ids))
@@ -1047,12 +718,6 @@ temp <- data.frame(
 cat("[INFO] Alignment checks passed. temp rows =", nrow(temp), "\n")
 ```
 
-### ----------------------------------------------------------------------------
-
-### 7) Add median time variable to phenotypes, in case one is needed.
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 #| echo: false
 p0$time <- 1.5
@@ -1064,55 +729,33 @@ colnames(p4) <- c("time","y", "id", "session")
 
 ```
 
-## The next section will split our imaging data and perform dimensionality reduction, according to best standards and practices. The default imaging data used will be the Gordon parcellated connectivity matrices in tsv form.
-
-### ----------------------------------------------------------------------------
-
-### 1) Get unique IDs
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 #| echo: false
 
 set.seed(123)  # reproducibility
 
+## ------------------------------------------------------------
+## 1) Get unique IDs
+## ------------------------------------------------------------
 all_ids <- common_ids
 
-length(all_ids) 
-```
+length(all_ids)   # should be 2023
 
-### ----------------------------------------------------------------------------
-
-### 2) Randomly select 1800 IDs for training, change the number for training by editing size.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
+## ------------------------------------------------------------
+## 2) Randomly select 1800 IDs for training
+## ------------------------------------------------------------
 train_ids <- sample(all_ids, size = 1800, replace = FALSE)
-```
 
-### ----------------------------------------------------------------------------
-
-### 3) The remaining cases go to test.
-
-### ----------------------------------------------------------------------------
-
-```{r}
+## Remaining go to test
 test_ids <- setdiff(all_ids, train_ids)
 
-length(train_ids)  
-length(test_ids)
+length(train_ids)  # 1800
+length(test_ids)   # 223
 
 
 ```
 
-### ----------------------------------------------------------------------------
-
-### 4) Calculate Singular Value Decomposition separately for each wave as well as splitting and test and train to avoid data leakage.
-
-### ----------------------------------------------------------------------------
+## Singular Value Decomposition
 
 ```{r}
 #| echo: false
@@ -1136,12 +779,6 @@ xmeans <- colMeans(x4train)
 x4train <- t(apply(x4train, 1, function(x) x-xmeans))
 x4test <- t(apply(x4test, 1, function(x) x-xmeans))
 ```
-
-### ----------------------------------------------------------------------------
-
-### 5) Extract 10 principal components from the imaging data for training and testing. This is done separately by session, and splitting train and test to avoid data leakage. Changing "k" on line 1092 changes how many PCs are selected.
-
-### ----------------------------------------------------------------------------
 
 ```{r}
 #| echo: false
@@ -1170,16 +807,6 @@ y4train <- p4 %>% filter(id %in% rownames(pc4train))
 colnames(pc4train) <- paste0("pc", 1:k)
 y4test <- p4 %>% filter(id %in% rownames(pc4test))
 colnames(pc4test) <- paste0("pc", 1:k)
-```
-
-### ----------------------------------------------------------------------------
-
-### 6) Combine all the data together across sessions into training and testing datasets.
-
-### ----------------------------------------------------------------------------
-
-```{r}
-#| echo: false
 
 ztrain <- rbind(pc0train, pc2train, pc4train)
 ytrain <- rbind(y0train,y2train,y4train)
@@ -1195,13 +822,14 @@ str(sv4)
 
 ```
 
-## The next section will train and test Linear Mixed Effects Models using the parental stress variable as the outcome and the extracted PCs as predictor variables.
+## Linear Mixed Effects Models
 
-### ----------------------------------------------------------------------------
+```{r}
+#| echo: false
 
-### 1) compute the bad data and remove any rows with missing or bad data.
 
-### ----------------------------------------------------------------------------
+
+```
 
 ```{r}
 mf_vars <- c("y", "id", "time", paste0("pc", 1:10))
@@ -1215,12 +843,6 @@ bad_counts
 
 ```
 
-### ----------------------------------------------------------------------------
-
-### 2) Construct a linear mixed effects model using all 10 PCs with a PC1\*time interaction. The fixed effects can be edited where it says "fixed". The random effects can be edited where it says random. The method can be selected where it says method.
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 model_1 <- nlme::lme(
   fixed  = y ~ pc1 + pc2 + pc3 + pc4 + pc5 + pc6 + pc7 + pc8 + pc9 + pc10 + time*pc1,
@@ -1233,12 +855,6 @@ model_1 <- nlme::lme(
 output <- ylmepred(model_1, data_test, timeVar = "time", times = c(0,2,4), all_times = TRUE, seed = 1L)
 
 ```
-
-### ----------------------------------------------------------------------------
-
-### 3) construct a data frame to map predicted outcomes to sessions and subjects.
-
-### ----------------------------------------------------------------------------
 
 ```{r}
 
@@ -1261,12 +877,6 @@ df_ids$yhat <- unname(output$fit[df_ids$key])
 df_ids$key <- NULL
 ```
 
-### ----------------------------------------------------------------------------
-
-### 4) Combine observed with predicted outcomes.
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 results <- data_test %>%
   mutate(ID = id,
@@ -1276,13 +886,7 @@ results <- data_test %>%
   inner_join(., df_ids, by=c("ID", "time"))
 ```
 
-## The next section shows results and performs data visualizations.
-
-### ----------------------------------------------------------------------------
-
-### 1) Calculate correlation between predicted and observed grouped by the time variable.
-
-### ----------------------------------------------------------------------------
+## Correlations between Predicted and Observed
 
 ```{r}
 r0 <- results %>% filter(time <= 12)
@@ -1293,11 +897,7 @@ r4 <- results %>% filter(time > 36 && time <= 60)
 cor(r4$y, r4$yhat)
 ```
 
-### ----------------------------------------------------------------------------
-
-### 2) Plot a scatter plot of predicted vs. observed using ggplot2 for the first wave.
-
-### ----------------------------------------------------------------------------
+## Plots
 
 ```{r}
 
@@ -1331,12 +931,6 @@ ggplot(r0, aes(x = y, y = yhat)) +
   theme_minimal(base_size = 14)
 ```
 
-### ----------------------------------------------------------------------------
-
-### 3) Plot a scatter plot of predicted vs. observed using ggplot2 for wave 2.
-
-### ----------------------------------------------------------------------------
-
 ```{r}
 
 ggplot(r2, aes(x = y, y = yhat)) +
@@ -1368,12 +962,6 @@ ggplot(r2, aes(x = y, y = yhat)) +
 
   theme_minimal(base_size = 14)
 ```
-
-### ----------------------------------------------------------------------------
-
-### 3) Plot a scatter plot of predicted vs. observed using ggplot2 for wave 3.
-
-### ----------------------------------------------------------------------------
 
 ```{r}
 
@@ -1407,13 +995,12 @@ ggplot(r4, aes(x = y, y = yhat)) +
   theme_minimal(base_size = 14)
 ```
 
-### ----------------------------------------------------------------------------
-
-### 4) Load R data for heatmap visualizations that contains ROI indices for ordering.
-
-### ----------------------------------------------------------------------------
+## Heatmap Visualizations
 
 ```{r}
+## Heatmap visualizations
+
+# loading R data containing ROI indices to determine ROI order
 load("~/ROI.RData")
 ROIindex <- unique(ROI$roi1)
 ROIcomm <- sapply( ROIindex ,function(x) {ROI$com1[ROI$roi1==x][1]} )
@@ -1422,37 +1009,19 @@ ROIdf_cortical <- ROIdf[1:333,]
 ROIdf_cortical_ordered <- ROIdf_cortical[order(ROIdf_cortical$comm),]
 ROIdf_cortical_ordered$old_index <- ROIdf_cortical_ordered$index
 ROIdf_cortical_ordered$index <- 1:333
-```
 
-### ----------------------------------------------------------------------------
-
-### 5) Load community file to define grid lines and set organization.
-
-### ----------------------------------------------------------------------------
-
-```{r}
+#load community file to define grid lines and set organization
 Gordoncommfile <- "~/gordon_communities_plus_subcortical.csv"
 Gordoncomms <- read.csv(Gordoncommfile)
 
 ```
 
-### ----------------------------------------------------------------------------
-
-### 6) Reshape weight vectors back into appropriate matrices.
-
-### ----------------------------------------------------------------------------
-
 ```{r}
+## reshape weight vectors back into appropriate matrices
 sv0weightmatlist <- ReshapeWeightsAsMatrices(sv0$v,nROIs)
 sv2weightmatlist <- ReshapeWeightsAsMatrices(sv2$v,nROIs)
 sv4weightmatlist <- ReshapeWeightsAsMatrices(sv4$v,nROIs)
 ```
-
-### ----------------------------------------------------------------------------
-
-### 7) Produce heatmap visualizations using the FCmap function created above.
-
-### ----------------------------------------------------------------------------
 
 ```{r}
 #heatmap visualizations 
@@ -1462,11 +1031,7 @@ FCMap(sv4weightmatlist[[1]],plottitle="first PC year 4",negmax=-0.03,posmax=0.03
 
 ```
 
-### ----------------------------------------------------------------------------
-
-### 8) Use PLSR to create weights for manhattan plot.
-
-### ----------------------------------------------------------------------------
+## Manhattan Plot
 
 ```{r}
 
@@ -1477,14 +1042,11 @@ fit <- plsr(y ~ X, ncomp = 20,  # choose a max; tune later
             scale = FALSE, center = TRUE,
             validation = "CV",
             method = "kernelpls")
-v1 <- fit$loading.weights[, 1]
 ```
 
-### ----------------------------------------------------------------------------
-
-### 9) Use ROI data to label outputs for manhattan plot. Edit the load path to select different ROI data. Edit "V = v1" to change which PC to visual (e.g. v2, v3, etc.).
-
-### ----------------------------------------------------------------------------
+```{r}
+v1 <- fit$loading.weights[, 1]
+```
 
 ```{r}
 load("ROI.RData")
