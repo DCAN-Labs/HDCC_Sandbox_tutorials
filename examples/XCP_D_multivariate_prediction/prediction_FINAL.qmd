@@ -1077,7 +1077,7 @@ model_1 <- nlme::lme(
   na.action = na.omit
 )
 
-complete_data_test <- complete.cases(data_test)
+complete_data_test <- data_test[complete.cases(data_test),]
 output <- ylmepred(model_1, complete_data_test, timeVar = "time", times = c(6,24) ,all_times = TRUE, seed = 1L)
 
 ```
@@ -1293,53 +1293,7 @@ FCMap(sv2weightmatlist[[1]][ROIdf_cortical_ordered$old_index,ROIdf_cortical_orde
 
 ```
 
-### 8) Use PLSR to create weights for manhattan plot.
-
-PLSR is used to calculate the loading weights from the model fit for the manhattan plot below. This gives an indication as to which intra and inter system connectivity may be driving effects observed in the model.
-
-```{r}
-
-X <- as.matrix(X0)              # n x p
-y <- as.numeric(p0$y)           # length n
-
-fit <- plsr(y ~ X, ncomp = 20,  # choose a max; tune later
-            scale = FALSE, center = TRUE,
-            validation = "CV",
-            method = "kernelpls")
-v1 <- fit$loading.weights[, 1]
-```
-
-### 9) Use ROI data to label outputs for manhattan plot.
-
-Edit the load path to select different ROI data. Edit "V = v1" to change which PC to visual (e.g. v2, v3, etc.).
-
-```{r}
-load("ROI.RData")
-# Define the inputs ManPlot expects
-group_structure <- ROI$group
-optional_index  <- ROI$index
-
-# Optional: predictor names (use ROI$roi if it matches your predictors)
-# Otherwise keep colnames(X)
-predictor_names <- if (!is.null(ROI$roi)) ROI$roi else colnames(X)
-
-# Sanity checks (these must match p = number of predictors)
-stopifnot(length(group_structure) == length(predictor_names))
-stopifnot(length(optional_index)  == length(predictor_names))
-stopifnot(length(v1)              == length(predictor_names))
-
-# Plot the first PLS "eigenvector" (loading weight vector)
-ManPlot(
-  V = v1,
-  predictor.names = predictor_names,
-  group.structure = group_structure,
-  optional.index = optional_index,
-  man.thresh = 0,
-  point.size = 1.5
-)
-```
-
-### 10) Output weights as tsvs brain-based visualization walkthrough
+### 8) Output weights as tsvs brain-based visualization walkthrough
 
 R is excellent at exporting tsvs, which can then be converted to pconns using `workbench`. The code repository contains a script that will automatically generate pconns and pscalars from output TSVs. Users can change the tsv output by editing step 7.10, reprinted below. Change the `fileroot` to modify the ouptut filenames. Change the `filepath` to modify where the outputs will be located.
 

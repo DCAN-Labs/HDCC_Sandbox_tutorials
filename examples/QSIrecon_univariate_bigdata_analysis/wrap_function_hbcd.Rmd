@@ -13,7 +13,7 @@ The NBDC sandbox provides access to ABCD and HBCD hdf5 outputs for QSIrecon. Thi
 
 This walkthrough shows you how to use `ModelArray.wrap` to perform statistical analysis on hdf5 data.
 
-We'll develop a function that computes the mean RTOP within each site, and then use `ModelArray.wrap` to run it across all voxels.
+We'll develop a function that computes the mean RTOP within each site, and then use `ModelArray.wrap` to run it across all voxels. RTOP measures the probability that a water molecule returns to its starting point. Low in unrestricted diffusion (large cells), high in restricted diffusion (small or impermeable cells). Inversely related to pore volume.
 
 Note that for this tutorial, we will be using a phenotype file used specifically for [Cieslak et al. 2025](https://doi.org/10.1101/2025.11.10.687672), made available via a secure NIST SP 1800 system. This tutorial will be updated in the future to use tabulated HBCD Study data available via the NBDC Data Access Platform for consistency. 
 
