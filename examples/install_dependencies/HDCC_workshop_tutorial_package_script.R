@@ -16,20 +16,29 @@
 #install.packages(arrowpackageurl,repos=NULL,type="source")
 
 install.packages("arrow")      # Loading parquet files into memory
+install.packages("corrplot")
 install.packages("cifti")      # Loading CIFTI files (the CIFTI format is our standard for HBCD imaging output files)
 install.packages("ciftiTools") # Tools for working with and visualizing CIFTI neuroimaging data
 install.packages("data.table") # Helpful for fast data manipulation and reshaping large data frames
 install.packages("dplyr")      # Helpful for looping through the same operations multiple times
 install.packages("ggplot2")    # For data visualizations
+install.packages("ggpubr")
+install.packages("ggraph")
 install.packages("ggsci")      # Provides scientific journal color schemes for ggplot2
+install.packages("kableExtra")
+install.packages("igraph")
 install.packages("lme4")       # Linear mixed-effects models
 install.packages("lmerTest")   # Adds p-values and tests to lme4 mixed models to predict outcomes
+install.packages("matrixStats")
+install.packages("naniar")
 install.packages("nlme")       # Nonlinear mixed-effects models (alternative to lme4)
 install.packages("plotrix")    # Additional plotting functions to generate heat maps
 install.packages("pls")        # Partial least squares regression and PCA-related methods
+install.packages("pwrss")
 install.packages("reshape2")   # Reshaping data between vectors and matrices
 install.packages("RSpectra")   # Efficient eigenvalue decomposition (data dimensionality reduction)
 install.packages("tidyr")      # Tidying and reshaping data, looping multiple operations
+install.packages("units")
 install.packages("systemfonts")# Fonts for plots and graphics
 install.packages("ragg")       # High-quality graphics rendering for ggplot
 install.packages("pkgdown")    # Build static documentation websites from R packages
@@ -45,6 +54,13 @@ install.packages("purrr")      # Functional programming tools for iteration and 
 install.packages("readr")      # Fast reading of CSV and text data files
 install.packages("stringr")    # String/text processing
 install.packages("tibble")     # Modern version of data frames
-
+install.packages("sf")
+install.packages("vdiffr")
+install.packages("ggseg")
+install.packages("ggseg3d")
+install.packages("ggseg.meshes")
+install.packages("ggseg.formats")
 library(devtools)
 install_github("PennLINC/ModelArray")
+install_github("ggsegverse/ggsegFreeSurfer")
+install_github("Jfortin1/neuroCombat_Rpackage")
